@@ -1,0 +1,28 @@
+{
+  "name": "zhijing-db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "知径 DB——多智能体个性化数据库学习系统",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @zhijing/api --filter client dev",
+    "dev:client": "pnpm --filter client start",
+    "dev:api": "pnpm --filter @zhijing/api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "check:delivery": "pnpm check && pnpm --filter client build && node scripts/check-delivery.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "eslint": "9.28.0",
+    "typescript": "6.0.3",
+    "vitest": "3.2.4"
+  }
+}

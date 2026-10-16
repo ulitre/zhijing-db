@@ -1,0 +1,9 @@
+node_modules
+.pnpm-store
+apps/client
+**/.env
+**/.expo
+**/dist
+coverage
+test-results
+*.log

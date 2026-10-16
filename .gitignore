@@ -1,0 +1,36 @@
+node_modules/
+.pnpm-store/
+.expo/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+apps/client/.vercel/
+apps/api/.vercel/
+
+.vercel
+
+# Local tools and generated project artifacts
+.agents/
+.artifact-work/
+.deployment-smoke/
+.reasonix/
+tmp/
+platform-tools-latest-windows/
+platform-tools-latest-windows.zip
+
+# APK builds exceed GitHub's 100 MB per-file limit
+deliverables/*.apk
+# Large binary deliverables are distributed separately
+deliverables/**/*.apk
+deliverables/**/*.mp4
+*.apk
+*.mp4
+**/.claude/
+**/.vscode/settings.json

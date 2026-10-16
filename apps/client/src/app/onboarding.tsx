@@ -1,0 +1,11 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { GlassCard, palette } from "../components/design-system";
+
+const steps = [["01", "先做一次诊断", "题目会根据你的回答自适应调整难度，定位需要巩固的知识点。"], ["02", "查看推荐路径", "路径展示诊断证据、掌握度、推荐节点和适合你的资源类型。"], ["03", "学习并验证", "在资源详情阅读解析、知识图或 SQL 实验，也可向 TutorAgent 提问。"]];
+export default function OnboardingScreen() {
+  const finish = async () => { await AsyncStorage.setItem("zhijing.onboarding.v1", "done"); router.replace("/"); };
+  return <SafeAreaView style={styles.safe}><View style={styles.page}><Text style={styles.eyebrow}>欢迎使用知径 DB</Text><Text style={styles.title}>四步形成个性化学习闭环</Text><Text style={styles.subtitle}>让诊断证据连接到下一步可执行的学习任务。</Text>{steps.map(([number, title, detail]) => <GlassCard key={number}><View style={styles.row}><Text style={styles.number}>{number}</Text><View style={styles.copy}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.detail}>{detail}</Text></View></View></GlassCard>)}<Pressable onPress={() => void finish()} style={styles.button}><Text style={styles.buttonText}>开始使用</Text></Pressable><Pressable onPress={() => void finish()} style={styles.skip}><Text style={styles.skipText}>以后从“使用帮助”再看</Text></Pressable></View></SafeAreaView>;
+}
+const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: "#17102F" }, page: { flex: 1, justifyContent: "center", padding: 24, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }, eyebrow: { color: "#C4B5FD", fontWeight: "900", letterSpacing: 1 }, title: { color: "white", fontSize: 27, fontWeight: "900" }, subtitle: { color: "#DDD6FE", lineHeight: 22, marginBottom: 10 }, row: { flexDirection: "row", gap: 14, alignItems: "flex-start" }, number: { color: palette.purple, fontSize: 20, fontWeight: "900" }, copy: { flex: 1 }, cardTitle: { color: palette.ink, fontWeight: "900", fontSize: 16 }, detail: { color: palette.muted, lineHeight: 19, marginTop: 5, fontSize: 12 }, button: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 15, backgroundColor: "#6D28D9", marginTop: 8 }, buttonText: { color: "white", fontWeight: "900", fontSize: 15 }, skip: { alignItems: "center", padding: 8 }, skipText: { color: "#DDD6FE", fontSize: 12 } });

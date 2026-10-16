@@ -1,0 +1,40 @@
+{
+  "name": "@zhijing/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.14.4",
+    "@hono/zod-validator": "0.7.2",
+    "@langchain/langgraph": "1.4.18",
+    "@langchain/langgraph-checkpoint-postgres": "1.0.5",
+    "@zhijing/agents": "workspace:*",
+    "@zhijing/course-data": "workspace:*",
+    "@zhijing/shared": "workspace:*",
+    "dotenv": "16.5.0",
+    "drizzle-orm": "0.45.3",
+    "hono": "4.7.11",
+    "pg": "8.23.0",
+    "sql.js": "1.13.0",
+    "zod": "3.25.51"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "@types/pg": "8.15.2",
+    "@types/sql.js": "1.4.9",
+    "tsx": "4.19.4",
+    "typescript": "6.0.3",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,14 @@
+**/.env
+**/.env.*
+!**/.env.example
+**/.expo
+**/.vercel
+**/dist
+**/node_modules
+.pnpm-store
+.git
+apps/client
+coverage
+docs
+test-results
+*.log
