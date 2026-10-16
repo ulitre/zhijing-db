@@ -29,14 +29,5 @@ pnpm dev:client
 
 详细设计、测试、来源和 AI Coding 说明位于 [`docs`](./docs/)。
 
-正式部署使用 Railway API、Vercel Web 和 EAS Build APK；详细步骤见 [`docs/06-部署与交付.md`](./docs/06-部署与交付.md)。
-
-- Web：<https://client-ten-smoky-12.vercel.app>
-- API 健康检查：<https://zhijing-db-api-production.up.railway.app/health>
-- Android APK：[deliverables/zhijing-db-android-2026-10-05-v5.apk](./deliverables/zhijing-db-android-2026-10-05-v5.apk)
-- APK SHA-256：`AEA470369984BDBED14815FD18A00AB20E5EEB7C1F2A44BE9F9D1155EDE3DE43`
-- 源码包：[deliverables/zhijing-db-source-2026-10-05-v9.zip](./deliverables/zhijing-db-source-2026-10-05-v9.zip)，排除密钥、依赖和构建缓存；校验值见 [交付索引](./deliverables/交付索引.md)。
-- 答辩演示稿：[deliverables/知径DB-答辩演示稿-v2.pptx](./deliverables/知径DB-答辩演示稿-v2.pptx)
-- 系统开发报告：[deliverables/知径DB-系统开发报告.docx](./deliverables/知径DB-系统开发报告.docx)
-- 讲稿：[deliverables/知径DB-6分30秒演示讲稿.md](./deliverables/知径DB-6分30秒演示讲稿.md)
+正式部署使用 Railway API、Vercel Web 和 EAS Build APK；配置与部署步骤见 [`docs/06-部署与交付.md`](./docs/06-部署与交付.md)。
 

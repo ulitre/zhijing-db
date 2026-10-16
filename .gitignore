@@ -25,11 +25,8 @@ tmp/
 platform-tools-latest-windows/
 platform-tools-latest-windows.zip
 
-# APK builds exceed GitHub's 100 MB per-file limit
-deliverables/*.apk
-# Large binary deliverables are distributed separately
-deliverables/**/*.apk
-deliverables/**/*.mp4
+# Final presentation and handoff materials stay local
+deliverables/
 *.apk
 *.mp4
 **/.claude/
