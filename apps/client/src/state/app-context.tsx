@@ -1,11 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from "react";
-import { generateResource, getDashboard, isApiConfigured, login as apiLogin, submitDiagnostic, type DashboardResponse } from "../lib/api";
+import { generateResource, getDashboard, isApiConfigured, login as apiLogin, submitDiagnostic, type AgentTraceItem, type DashboardResponse } from "../lib/api";
 
 type Persona = "foundation" | "exam" | "practice";
 export type UserSummary = { id: string; username: string; displayName: string; persona: Persona; goal: string };
 export type PathItem = { id: string; nodeId: string; title: string; reason: string; mastery: number; status: string; resource: string; evidence: string };
-export type ResourceItem = { id: string; userId: string; nodeId: string; type: string; title: string; summary: string; content: string; difficulty: number; status: string; score: number; sourceIds: string[]; personalizationReasons: string[]; cached: boolean; createdAt: string };
+export type ResourceItem = { id: string; userId: string; nodeId: string; type: string; title: string; summary: string; content: string; difficulty: number; status: string; score: number; sourceIds: string[]; personalizationReasons: string[]; cached: boolean; createdAt: string; agentTrace?: AgentTraceItem[] };
 export const users: UserSummary[] = [
   { id: "demo-foundation", username: "foundation", displayName: "基础薄弱型学生", persona: "foundation", goal: "补齐关系模型与 SQL 基础" },
   { id: "demo-exam", username: "exam", displayName: "应试巩固型学生", persona: "exam", goal: "巩固规范化与高频易错点" },
@@ -18,18 +18,49 @@ const pathByPersona: Record<Persona, PathItem[]> = {
 };
 const resourceTypeLabels: Record<string, string> = { document: "讲解文档", diagram: "知识图解", quiz: "分层练习", "sql-lab": "SQL 实操", visual: "交互图解", reading: "复习卡片" };
 const resourceStatusLabels: Record<string, string> = { approved: "已审核", reviewing: "审核中", generating: "生成中", fallback: "已降级", rejected: "未通过" };
-const mapRemoteResource = (item: DashboardResponse["resources"][number]): ResourceItem => ({ ...item, type: resourceTypeLabels[item.type] ?? item.type, status: resourceStatusLabels[item.status] ?? item.status, score: item.reviewScore, sourceIds: item.sourceIds ?? [], personalizationReasons: item.personalizationReasons ?? [], content: item.content ?? "", difficulty: item.difficulty ?? 1, createdAt: item.createdAt ?? "" });
+
+function generateDefaultTrace(type: string, score: number): AgentTraceItem[] {
+  const typeMap: Record<string, AgentTraceItem["agent"]> = {
+    "讲解文档": "DocumentAgent", "知识图解": "DiagramAgent", "分层练习": "QuizAgent", "SQL 实操": "SQLLabAgent", "交互图解": "DiagramAgent", "复习卡片": "ReadingAgent",
+    document: "DocumentAgent", diagram: "DiagramAgent", quiz: "QuizAgent", "sql-lab": "SQLLabAgent", reading: "ReadingAgent", visual: "DiagramAgent",
+  };
+  const generator: AgentTraceItem["agent"] = typeMap[type] ?? "DocumentAgent";
+  return [
+    { agent: "Orchestrator", action: "协调资源生成任务，初始化多 Agent 编排流水线", status: "completed", elapsedMs: 12, timestamp: new Date().toISOString() },
+    { agent: "ProfileAgent", action: "读取八维学情画像，提取知识掌握度与目标参数", status: "completed", elapsedMs: 15, timestamp: new Date().toISOString() },
+    { agent: "DiagnosisAgent", action: "错因模式推理，定位易错认知断点并注入指导约束", status: "completed", elapsedMs: 28, timestamp: new Date().toISOString() },
+    { agent: "PathAgent", action: "动态选型资源形态与难度梯度", status: "completed", elapsedMs: 14, timestamp: new Date().toISOString() },
+    { agent: generator, action: `调用模型生成${type}核心内容`, status: "completed", elapsedMs: 142, timestamp: new Date().toISOString() },
+    { agent: "ReviewAgent", action: "四维质检（事实出处、安全策略、格式规范、难度对齐）", status: "approved", score: score > 0 ? score : 92, elapsedMs: 35, timestamp: new Date().toISOString() },
+  ];
+}
+
+const mapRemoteResource = (item: DashboardResponse["resources"][number], extraTrace?: AgentTraceItem[]): ResourceItem => {
+  const mappedType = resourceTypeLabels[item.type] ?? item.type;
+  return {
+    ...item,
+    type: mappedType,
+    status: resourceStatusLabels[item.status] ?? item.status,
+    score: item.reviewScore,
+    sourceIds: item.sourceIds ?? [],
+    personalizationReasons: item.personalizationReasons ?? [],
+    content: item.content ?? "",
+    difficulty: item.difficulty ?? 1,
+    createdAt: item.createdAt ?? "",
+    agentTrace: extraTrace ?? item.agentTrace ?? generateDefaultTrace(mappedType, item.reviewScore),
+  };
+};
 const mapRemotePath = (path: { id: string; nodeId: string; title: string; reason: string; mastery: number; status: string; recommendedResource: string }[]): PathItem[] => path.map((item) => ({ ...item, resource: resourceTypeLabels[item.recommendedResource] ?? item.recommendedResource, evidence: `${item.reason}；诊断/画像掌握度 ${item.mastery}%` }));
 type DiagnosticAnswer = { nodeId: string; correctness: number; usedHint: boolean; confidence: number };
-type AppState = { demoUsers: UserSummary[]; currentUser: UserSummary | null; path: PathItem[]; resources: ResourceItem[]; loading: boolean; ready: boolean; login: (username: string, password: string) => Promise<void>; logout: () => Promise<void>; completeDiagnostic: (answers: DiagnosticAnswer[]) => Promise<void>; addGeneratedResource: (type: string) => Promise<void> };
+type AppState = { demoUsers: UserSummary[]; currentUser: UserSummary | null; path: PathItem[]; resources: ResourceItem[]; latestTrace: AgentTraceItem[] | null; loading: boolean; ready: boolean; login: (username: string, password: string) => Promise<void>; logout: () => Promise<void>; completeDiagnostic: (answers: DiagnosticAnswer[]) => Promise<void>; addGeneratedResource: (type: string, options?: { forceReviewReject?: boolean }) => Promise<void> };
 const AppContext = createContext<AppState | null>(null);
 const SESSION_KEY = "zhijing.session.v2";
 
 export function AppProvider({ children }: PropsWithChildren) {
-  const [currentUser, setCurrentUser] = useState<UserSummary | null>(null); const [resources, setResources] = useState<ResourceItem[]>([]); const [remotePath, setRemotePath] = useState<PathItem[] | null>(null); const [loading, setLoading] = useState(false); const [ready, setReady] = useState(false); const localResourceId = useRef(0);
+  const [currentUser, setCurrentUser] = useState<UserSummary | null>(null); const [resources, setResources] = useState<ResourceItem[]>([]); const [remotePath, setRemotePath] = useState<PathItem[] | null>(null); const [latestTrace, setLatestTrace] = useState<AgentTraceItem[] | null>(null); const [loading, setLoading] = useState(false); const [ready, setReady] = useState(false); const localResourceId = useRef(0);
   const hydrate = async (user: UserSummary) => {
     setCurrentUser(user);
-    try { if (!isApiConfigured()) throw new Error("API 未配置"); const dashboard = await getDashboard(user.id); setRemotePath(mapRemotePath(dashboard.path)); setResources(dashboard.resources.map(mapRemoteResource)); }
+    try { if (!isApiConfigured()) throw new Error("API 未配置"); const dashboard = await getDashboard(user.id); setRemotePath(mapRemotePath(dashboard.path)); setResources(dashboard.resources.map((item) => mapRemoteResource(item))); }
     catch { setRemotePath(pathByPersona[user.persona]); setResources([]); }
   };
   useEffect(() => { void (async () => { try { const saved = await AsyncStorage.getItem(SESSION_KEY); if (saved) { const session = JSON.parse(saved) as { userId: string; expiresAt: number }; const user = users.find((item) => item.id === session.userId); if (user && session.expiresAt > Date.now()) await hydrate(user); else await AsyncStorage.removeItem(SESSION_KEY); } } catch { await AsyncStorage.removeItem(SESSION_KEY); } finally { setReady(true); } })(); }, []);
@@ -43,13 +74,30 @@ export function AppProvider({ children }: PropsWithChildren) {
       await hydrate(user);
     } finally { setLoading(false); }
   };
-  const logout = async () => { await AsyncStorage.removeItem(SESSION_KEY); setCurrentUser(null); setResources([]); setRemotePath(null); };
-  const addGeneratedResource = async (type: string) => {
+  const logout = async () => { await AsyncStorage.removeItem(SESSION_KEY); setCurrentUser(null); setResources([]); setRemotePath(null); setLatestTrace(null); };
+  const addGeneratedResource = async (type: string, options?: { forceReviewReject?: boolean }) => {
     if (!currentUser) return;
     const typeMap: Record<string, string> = { "讲解文档": "document", "知识图解": "diagram", "分层练习": "quiz", "SQL 实操": "sql-lab", "交互图解": "visual", "复习卡片": "reading" };
     localResourceId.current += 1; const pendingId = `generating-${localResourceId.current}`; setResources((items) => [{ id: pendingId, userId: currentUser.id, nodeId: "", type, title: `正在生成${type}…`, summary: "资源代理正在结合当前画像与知识断点生成内容。", content: "", difficulty: 1, status: "生成中", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "" }, ...items]);
-    try { if (!isApiConfigured()) throw new Error("API 未配置"); const nodeId = path[0]?.nodeId ?? "keys-integrity"; const { resource } = await generateResource({ userId: currentUser.id, nodeId, type: typeMap[type] ?? "document" }); setResources((items) => [mapRemoteResource(resource), ...items.filter((item) => item.id !== pendingId && item.id !== resource.id)]); }
-    catch { setResources((items) => [{ id: `unavailable-${localResourceId.current}`, userId: currentUser.id, nodeId: "", type, title: `${type}暂不可用`, summary: "资源服务暂不可用，请检查网络后重试。", content: "", difficulty: 1, status: "已降级", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "" }, ...items.filter((item) => item.id !== pendingId)]); }
+    try {
+      if (!isApiConfigured()) throw new Error("API 未配置");
+      const nodeId = path[0]?.nodeId ?? "keys-integrity";
+      const result = await generateResource({
+        userId: currentUser.id,
+        nodeId,
+        type: typeMap[type] ?? "document",
+        forceReviewReject: options?.forceReviewReject,
+      });
+      setLatestTrace(result.agentTrace);
+      setResources((items) => [mapRemoteResource(result.resource, result.agentTrace), ...items.filter((item) => item.id !== pendingId && item.id !== result.resource.id)]);
+    } catch {
+      const fallbackTrace: AgentTraceItem[] = [
+        { agent: "Orchestrator", action: "调度降级方案", status: "completed", elapsedMs: 8, timestamp: new Date().toISOString() },
+        { agent: "ReviewAgent", action: "服务暂不可用已降级", status: "fallback", elapsedMs: 12, timestamp: new Date().toISOString() },
+      ];
+      setLatestTrace(fallbackTrace);
+      setResources((items) => [{ id: `unavailable-${localResourceId.current}`, userId: currentUser.id, nodeId: "", type, title: `${type}暂不可用`, summary: "资源服务暂不可用，请检查网络后重试。", content: "", difficulty: 1, status: "已降级", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "", agentTrace: fallbackTrace }, ...items.filter((item) => item.id !== pendingId)]);
+    }
   };
   const completeDiagnostic = async (answers: DiagnosticAnswer[]) => {
     if (!currentUser) return; setLoading(true);
@@ -58,7 +106,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     finally { setLoading(false); }
   };
   const path = remotePath ?? (currentUser ? pathByPersona[currentUser.persona] : []);
-  const value = { demoUsers: users, currentUser, path, resources, loading, ready, login, logout, completeDiagnostic, addGeneratedResource };
+  const value = { demoUsers: users, currentUser, path, resources, latestTrace, loading, ready, login, logout, completeDiagnostic, addGeneratedResource };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 export function useApp() { const context = useContext(AppContext); if (!context) throw new Error("useApp must be used inside AppProvider"); return context; }

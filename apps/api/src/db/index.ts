@@ -24,6 +24,21 @@ export async function persistResource(resource: LearningResource): Promise<void>
     .onConflictDoUpdate({ target: schema.resources.id, set: { payload: resource, reviewScore: resource.reviewScore } });
 }
 
+export async function persistMasteryEvidence(input: {
+  userId: string;
+  nodeId: string;
+  score: number;
+  evidence: Record<string, unknown>;
+}): Promise<void> {
+  if (!database) return;
+  await database.insert(schema.masteryEvidence).values({
+    userId: input.userId,
+    nodeId: input.nodeId,
+    score: input.score,
+    evidence: input.evidence,
+  });
+}
+
 export async function closeDatabase(): Promise<void> {
   await pool?.end();
 }

@@ -45,7 +45,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "expo export --platform web"
+    "build": "expo export --platform web --clear"
   },
   "private": true
 }

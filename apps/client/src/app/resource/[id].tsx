@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { AgentTraceTimeline } from "../../components/agent-trace-timeline";
 import { GlassCard, PageHeader, palette } from "../../components/design-system";
 import { ScreenShell } from "../../components/screen-shell";
 import { getCourse } from "../../lib/api";
@@ -13,6 +14,13 @@ export default function ResourceDetailScreen() {
   const sections = resource.content.split(/\n{2,}/).filter(Boolean);
   const approved = resource.status === "已审核" || resource.status === "审核通过";
   return <ScreenShell><PageHeader title={resource.title} subtitle={`${resource.type} · 难度 ${resource.difficulty}/5 · ${resource.status}`} />
+    {resource.agentTrace && resource.agentTrace.length > 0 ? (
+      <AgentTraceTimeline
+        trace={resource.agentTrace}
+        title="12 智能体协同质检沙盘"
+        defaultExpanded={true}
+      />
+    ) : null}
     <GlassCard accent><View style={styles.reviewStamp}><Text style={styles.reviewGlyph}>{approved ? "✓" : "◇"}</Text><Text style={styles.reviewText}>{approved ? "ReviewAgent 审核通过：已校验教材出处与难度" : `ReviewAgent · ${resource.status}`}</Text></View><Text style={styles.heading}>资源摘要</Text><Text style={styles.body}>{resource.summary}</Text><Text style={styles.heading}>完整内容</Text>{sections.map((section, index) => <Text key={index} selectable style={[styles.body, resource.type === "SQL 实操" && styles.code]}>{section}</Text>)}</GlassCard>
     {resource.type === "分层练习" ? <GlassCard><Text style={styles.heading}>练习与解析</Text><Text style={styles.body}>先独立作答，再对照资源正文中的题目、答案和解析核对概念。若正文未提供答案，点击“向 TutorAgent 提问”请求逐题讲解。</Text></GlassCard> : null}
     {resource.type === "SQL 实操" ? <Pressable onPress={() => router.push("/sql-lab")} style={styles.button}><Text style={styles.buttonText}>打开 SQL 实验室执行 ›</Text></Pressable> : null}

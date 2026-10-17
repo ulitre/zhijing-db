@@ -12,13 +12,27 @@
 
 ```powershell
 Copy-Item apps/api/.env.example apps/api/.env
-Copy-Item apps/client/.env.example apps/client/.env
 pnpm install
+pnpm env:local
 pnpm dev:api
 pnpm dev:client
 ```
 
-客户端默认访问 `http://localhost:8787`。真机调试时需把 `EXPO_PUBLIC_API_URL` 改成电脑的局域网地址。
+客户端本地访问 `http://localhost:8787`。真机调试时需把 `EXPO_PUBLIC_API_URL` 改成电脑的局域网地址。
+
+## 环境切换
+
+`apps/client/.env` 已被忽略，不能再用 `git checkout --` 还原。根目录提供幂等切换脚本：
+
+```powershell
+pnpm env:local   # 备份当前生产地址，并切到 http://localhost:8787
+pnpm env:prod    # 从 apps/client/.env.prod.bak 恢复生产地址（随后删除备份）
+```
+
+- 首次 `env:local` 会生成 `apps/client/.env.prod.bak`；该文件不入库。
+- `env:prod` 默认恢复为 `https://zhijing-db-api-production.up.railway.app`，可用 `PROD_API_URL` 覆盖；`env:local` 可用 `LOCAL_API_URL` 覆盖。
+- 交付构建前必须先执行 `pnpm env:prod`，再用 `pnpm check:delivery` 确认导出包包含生产 HTTPS API 且不含 localhost。
+- Node.js 版本由根目录 `.nvmrc` / `.node-version` 固定为 22.x，对齐 `engines: ">=22.13.0 <23"`。
 
 ## 安全约束
 

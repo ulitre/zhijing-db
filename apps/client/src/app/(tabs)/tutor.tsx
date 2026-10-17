@@ -11,8 +11,11 @@ const localAnswer: TutorResponse = {
   refused: false,
 };
 
+// 与 API 侧保持一致：只有「事物」与事务/ACID 语境共现时才判定为同音笔误
+const mentionsTransactionTypo = (question: string) => /事物/.test(question) && /(acid|事务|四大|特性|性质|原子性|一致性|隔离性|持久性)/i.test(question);
+
 function localTutorFallback(question: string): TutorResponse {
-  const normalized = question.replace(/事物(?=(?:的)?(?:四大|特性|性质|acid|原子性|一致性|隔离性|持久性))/gi, "事务");
+  const normalized = mentionsTransactionTypo(question) ? question.replace(/事物/g, "事务") : question;
   if (/(事务|acid|原子性|一致性|隔离性|持久性)/i.test(normalized)) return {
     answer: "事务的四大特性称为 ACID：原子性表示操作全部成功或全部回滚；一致性表示事务前后满足完整性约束；隔离性表示并发事务互不干扰；持久性表示提交结果不会因故障丢失。",
     citations: [{ id: "local-postgresql-transactions", title: "PostgreSQL Documentation · Transactions" }],
@@ -52,7 +55,7 @@ export default function TutorScreen() {
     finally { setLoading(false); }
   };
 
-  const correctedQuestion = /事物(?=(?:的)?(?:四大|特性|性质|acid|原子性|一致性|隔离性|持久性))/i.test(lastQuestion);
+  const correctedQuestion = mentionsTransactionTypo(lastQuestion);
 
   return <ScreenShell><PageHeader title="AI 辅导" subtitle="只回答《数据库原理》范围，并提供可追踪知识来源" />
     <GlassCard accent><Text style={styles.label}>当前学习节点</Text><Text style={styles.node}>键与关系完整性</Text><Text style={styles.hint}>试着问：“候选键和主键到底有什么区别？”</Text></GlassCard>

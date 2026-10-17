@@ -70,7 +70,7 @@ const seeds: NodeSeed[] = [
   ["undo-redo", "UNDO、REDO 与崩溃恢复", "根据日志判断撤销和重做动作", 5, ["wal-checkpoint", "recoverability"], ["UNDO", "REDO"]],
   ["backup", "备份、恢复与时间点恢复", "选择逻辑、物理备份及恢复策略", 3, ["failure-types"], ["备份", "PITR"]],
   ["storage", "页、记录与存储组织", "解释数据库的基本物理存储单位", 3, ["dbms-functions"], ["页", "记录"]],
-  ["index-basic", "B 树与哈希索引", "比较索引结构适用的查询模式", 3, ["storage", "sql-select"], ["B树", "哈希索引"]],
+  ["index-basic", "B 树与哈希索引", "比较索引结构适用的查询模式", 3, ["storage", "sql-select"], ["B树", "B+树", "B-树", "哈希索引", "索引"]],
   ["index-design", "复合、覆盖与唯一索引", "根据查询模式设计并评价索引", 4, ["index-basic"], ["复合索引", "覆盖索引"]],
   ["query-plan", "查询算子与执行计划", "阅读常见算子和计划树", 4, ["sql-joins", "storage"], ["执行计划", "算子"]],
   ["optimizer", "代价、统计信息与 EXPLAIN", "用 EXPLAIN 分析并改进查询", 5, ["query-plan", "index-design"], ["优化器", "EXPLAIN"]],
@@ -111,5 +111,7 @@ export const flagshipCase = {
   description: "围绕学生、课程、教师、开课班与选课记录，贯穿 ER 建模、规范化、SQL、事务、索引与权限。",
   entities: ["student", "course", "teacher", "section", "enrollment"],
 };
+
+export * from "./exercises.js";
 
 export const getKnowledgeNode = (id: string) => knowledgeNodes.find((node) => node.id === id);
