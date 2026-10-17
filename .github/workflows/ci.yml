@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支只保留最新一次运行，PR 更新时取消旧任务
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  EXPO_NO_TELEMETRY: 1
+
+jobs:
+  delivery-gate:
+    name: Delivery gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # 与根 package.json 的 packageManager 保持一致
+          version: 11.25.0
+
+      - name: Setup Node.js (.nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 干净检出没有 dist/，workspace 包通过 exports 指向 dist，
+      # 必须先按拓扑序构建依赖，否则 typecheck / test 会 TS2307。
+      - name: Build workspace packages
+        run: pnpm --filter "@zhijing/api..." build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      # 单一事实来源：Web 包必须注入 eas.json 中的生产 HTTPS 地址
+      - name: Resolve production API URL
+        shell: bash
+        run: |
+          node -e "
+            const eas = require('./apps/client/eas.json');
+            const url = eas.build.preview.env.EXPO_PUBLIC_API_URL;
+            if (typeof url !== 'string' || !url.startsWith('https://')) {
+              console.error('apps/client/eas.json 缺少有效的 HTTPS EXPO_PUBLIC_API_URL');
+              process.exit(1);
+            }
+            console.log('EXPO_PUBLIC_API_URL=' + url);
+          " >> "$GITHUB_ENV"
+
+      - name: Delivery check
+        run: pnpm check:delivery
+
+      - name: Show resolved API base
+        if: always()
+        run: echo "EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL:-<unset>}"
