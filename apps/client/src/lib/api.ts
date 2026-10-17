@@ -1,3 +1,7 @@
+import type { AgentTraceItem, EvaluationResult, MasteryHistoryPoint, SqlExercise } from "@zhijing/shared";
+
+export type { AgentTraceItem, EvaluationResult, MasteryHistoryPoint, SqlExercise };
+
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 
 export type AuthResponse = { token: string; user: { id: string; username: string; displayName: string; persona: "foundation" | "exam" | "practice" }; expiresIn: number };
@@ -39,15 +43,23 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
 
 export type DashboardResponse = {
   path: { id: string; nodeId: string; title: string; reason: string; mastery: number; status: string; recommendedResource: string }[];
-  resources: { id: string; userId: string; nodeId: string; type: string; title: string; summary: string; content: string; difficulty: number; status: string; reviewScore: number; sourceIds: string[]; personalizationReasons: string[]; cached: boolean; createdAt: string }[];
+  resources: { id: string; userId: string; nodeId: string; type: string; title: string; summary: string; content: string; difficulty: number; status: string; reviewScore: number; sourceIds: string[]; personalizationReasons: string[]; cached: boolean; createdAt: string; agentTrace?: AgentTraceItem[] }[];
 };
 
 export function getDashboard(userId: string) {
   return request<DashboardResponse>(`/api/dashboard/${userId}`);
 }
 
-export function generateResource(input: { userId: string; nodeId: string; type: string }) {
-  return request<{ resource: DashboardResponse["resources"][number] }>("/api/resources", {
+export type GenerateResourceResponse = {
+  resource: DashboardResponse["resources"][number];
+  events: { runId: string; agent: string; status: string; progress: number; summary: string; elapsedMs: number; timestamp: string }[];
+  agentTrace: AgentTraceItem[];
+  runId: string;
+  cacheHit: boolean;
+};
+
+export function generateResource(input: { userId: string; nodeId: string; type: string; forceReviewReject?: boolean }) {
+  return request<GenerateResourceResponse>("/api/resources", {
     method: "POST",
     body: JSON.stringify(input),
     timeoutMs: 20_000,
@@ -83,3 +95,52 @@ export function askTutor(input: { userId: string; question: string; nodeId?: str
 
 export type CourseResponse = { title: string; nodes: { id: string; title: string; module: string; objective: string; difficulty: number; sourceIds: string[] }[]; sources: { id: string; title: string; organization: string; url: string; license: string }[] };
 export function getCourse() { return request<CourseResponse>("/api/course"); }
+
+export type ExercisesResponse = {
+  total: number;
+  coreCount: number;
+  exercises: SqlExercise[];
+};
+
+export function getExercises(category?: string) {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  return request<ExercisesResponse>(`/api/sql/exercises${query}`);
+}
+
+export type EvaluateResponse = {
+  evaluation: EvaluationResult;
+  history: MasteryHistoryPoint[];
+  retentionSummary: { nodeId: string; retentionScore: number; needsReview: boolean }[];
+};
+
+export function evaluateSql(input: {
+  userId: string;
+  nodeId: string;
+  correct: boolean;
+  sql?: string;
+  timeSpentSec?: number;
+  hintCount?: number;
+}) {
+  return request<EvaluateResponse>("/api/evaluate", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export type MasteryHistoryResponse = {
+  history: MasteryHistoryPoint[];
+  retention: {
+    nodeId: string;
+    nodeTitle: string;
+    currentMastery: number;
+    retentionScore: number;
+    daysSinceLastPractice: number;
+    needsReview: boolean;
+  }[];
+  overallMastery: number;
+  trend: "rising" | "stable" | "declining";
+};
+
+export function getMasteryHistory(userId: string) {
+  return request<MasteryHistoryResponse>(`/api/mastery/history/${userId}`);
+}

@@ -89,18 +89,169 @@ export function updateMastery(oldMastery: number, evidence: MasteryEvidence): nu
   return Math.max(0, Math.min(100, Math.round(oldMastery * 0.7 + score * 0.3)));
 }
 
-function preferredResource(profile: LearnerProfile): PathStep["recommendedResource"] {
-  if (profile.learningPreference === "visual") return "diagram";
-  if (profile.learningPreference === "practice") return "sql-lab";
-  if (profile.learningPreference === "concise") return "quiz";
-  return "document";
+export type BktParams = {
+  pTransit?: number;
+  pGuess?: number;
+  pSlip?: number;
+};
+
+export type BktUpdateResult = {
+  prior: number;
+  posterior: number;
+  newMastery: number;
+  delta: number;
+  transit: number;
+};
+
+export function computeBktUpdate(
+  currentMastery: number,
+  isCorrect: boolean,
+  params: BktParams = {},
+): BktUpdateResult {
+  const pT = params.pTransit ?? 0.15;
+  const pG = params.pGuess ?? 0.20;
+  const pS = params.pSlip ?? 0.10;
+
+  const prior = Math.max(0.05, Math.min(0.95, currentMastery / 100));
+
+  let posterior: number;
+  if (isCorrect) {
+    const numerator = prior * (1 - pS);
+    const denominator = numerator + (1 - prior) * pG;
+    posterior = denominator > 0 ? numerator / denominator : prior;
+  } else {
+    const numerator = prior * pS;
+    const denominator = numerator + (1 - prior) * (1 - pG);
+    posterior = denominator > 0 ? numerator / denominator : prior;
+  }
+
+  const newP = posterior + (1 - posterior) * pT;
+  const newMastery = Math.max(5, Math.min(99, Math.round(newP * 100)));
+  const delta = newMastery - currentMastery;
+
+  return {
+    prior: Math.round(prior * 100),
+    posterior: Math.round(posterior * 100),
+    newMastery,
+    delta,
+    transit: Math.round(pT * 100),
+  };
+}
+
+export function evaluateSqlSubmission(input: {
+  userId: string;
+  nodeId: string;
+  isCorrect: boolean;
+  currentMastery: number;
+  nodeTitle?: string | undefined;
+  sql?: string | undefined;
+}) {
+  const bkt = computeBktUpdate(input.currentMastery, input.isCorrect);
+  const feedback = input.isCorrect
+    ? `EvaluationAgent 评测通过：SQL 验证通过，简化版 BKT 计算将掌握度从 ${input.currentMastery}% 提升至 ${bkt.newMastery}% (+${bkt.delta}%)。`
+    : `EvaluationAgent 评测未通过：SQL 执行未达预期，BKT 调整后掌握度为 ${bkt.newMastery}% (${bkt.delta}%)。`;
+
+  const unlockedBadges: string[] = [];
+  if (input.isCorrect) {
+    unlockedBadges.push("初探八表");
+    if (bkt.newMastery >= 75) unlockedBadges.push("SQL实战达人");
+    if (input.sql && /join/i.test(input.sql)) unlockedBadges.push("多表联结专家");
+    if (input.sql && /over\s*\(/i.test(input.sql)) unlockedBadges.push("窗口函数探秘者");
+  }
+
+  return {
+    userId: input.userId,
+    nodeId: input.nodeId,
+    conceptTitle: input.nodeTitle ?? "SQL 综合实战",
+    prevMastery: input.currentMastery,
+    newMastery: bkt.newMastery,
+    delta: bkt.delta,
+    bkt: {
+      prior: bkt.prior,
+      posterior: bkt.posterior,
+      transit: bkt.transit,
+    },
+    feedback,
+    unlockedBadges,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export function diagnoseErrorPatterns(user: DemoUser, nodeId: string): {
+  tags: string[];
+  rootCause: string;
+  promptInject: string;
+} {
+  const node = getKnowledgeNode(nodeId);
+  const patterns: Record<string, { tags: string[]; rootCause: string; hint: string }> = {
+    "relations": {
+      tags: ["概念混淆", "元组属性映射"],
+      rootCause: "未能区分关系模式与关系实例的区别",
+      hint: "强调区分属性、域与元组，结合具体选课表结构说明。",
+    },
+    "keys-integrity": {
+      tags: ["键完整性混淆", "外键约束违反"],
+      rootCause: user.profile.commonErrorPattern || "容易混淆主键、候选键与外键",
+      hint: "重点对比主键（唯一非空）与外键（参照完整性），列出正反例。",
+    },
+    "sql-select": {
+      tags: ["NULL逻辑混淆", "WHERE过滤阶段错误"],
+      rootCause: "在处理三值逻辑 (TRUE/FALSE/UNKNOWN) 时发生过滤漂移",
+      hint: "说明 IS NULL 与 = NULL 的本质差别，并给出防错技巧。",
+    },
+    "sql-joins": {
+      tags: ["JOIN 笛卡尔积隐患", "连接键缺失"],
+      rootCause: "缺少显式连接条件或错把外键当主键关联",
+      hint: "特别说明多表 JOIN 时连接键与业务关系的对应，避免生成笛卡尔积。",
+    },
+    "sql-aggregate": {
+      tags: ["HAVING与WHERE混淆", "非聚合列未分组"],
+      rootCause: "混淆行级过滤与分组后聚合过滤的时序",
+      hint: "强调执行顺序：FROM -> WHERE -> GROUP BY -> HAVING -> SELECT。",
+    },
+    "sql-advanced": {
+      tags: ["窗口帧定义错误", "PARTITION BY 与 GROUP BY 混淆"],
+      rootCause: "未能掌握窗口函数不改变输出行数的特性",
+      hint: "详细展示 OVER (PARTITION BY ... ORDER BY ...) 的执行逻辑与对比。",
+    },
+    "nf-3bc": {
+      tags: ["闭包证明缺失", "范式误判"],
+      rootCause: user.profile.commonErrorPattern || "会套范式结论，但不会用闭包证明",
+      hint: "必须要求给出属性闭包的逐步求解过程，不要直接跳到范式级别。",
+    },
+  };
+
+  const matched = patterns[nodeId] ?? {
+    tags: ["基础巩固", "依赖推导"],
+    rootCause: user.profile.commonErrorPattern || `对 ${node?.title ?? nodeId} 的工程应用不够熟练`,
+    hint: `强化针对 ${node?.title ?? nodeId} 的前置依赖推导与常见反例。`,
+  };
+
+  return {
+    tags: matched.tags,
+    rootCause: matched.rootCause,
+    promptInject: `【DiagnosisAgent 诊断错因】学员历史常见易错点为：“${matched.rootCause}”。本次生成必须针对标签 [${matched.tags.join(", ")}]，${matched.hint}`,
+  };
+}
+
+export function resolveResourceByMastery(
+  mastery: number,
+  preference?: LearnerProfile["learningPreference"],
+): PathStep["recommendedResource"] {
+  if (mastery < 40) {
+    return preference === "visual" ? "diagram" : "reading";
+  }
+  if (mastery > 75) {
+    return "sql-lab";
+  }
+  if (preference === "visual") return "diagram";
+  if (preference === "practice") return "sql-lab";
+  return "quiz";
 }
 
 export function planLearningPath(profile: LearnerProfile, limit = 8): PathStep[] {
   const mastery = profile.knowledgeMastery;
   const weakNodes = knowledgeNodes
-    // Only score explicit evidence. Treat unassessed nodes as neutral so they do
-    // not flood a learner's plan simply because the profile baseline is below 80.
     .map((node) => ({ node, mastery: mastery[node.id] ?? 80 }))
     .filter(({ mastery: value }) => value < 80)
     .sort((a, b) => a.mastery - b.mastery || a.node.difficulty - b.node.difficulty);
@@ -130,7 +281,7 @@ export function planLearningPath(profile: LearnerProfile, limit = 8): PathStep[]
         : `它是后续知识的前置基础，当前掌握度 ${value}`,
     mastery: value,
     status: index === 0 ? "active" : "recommended",
-    recommendedResource: preferredResource(profile),
+    recommendedResource: resolveResourceByMastery(value, profile.learningPreference),
   }));
 }
 

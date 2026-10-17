@@ -108,6 +108,71 @@ export const AgentEventSchema = z.object({
 });
 export type AgentEvent = z.infer<typeof AgentEventSchema>;
 
+export const AgentTraceItemSchema = z.object({
+  agent: AgentNameSchema,
+  action: z.string(),
+  status: z.enum(["queued", "running", "completed", "failed", "fallback", "rejected", "approved"]),
+  score: z.number().optional(),
+  feedback: z.string().optional(),
+  elapsedMs: z.number().nonnegative().default(0),
+  timestamp: z.string(),
+});
+export type AgentTraceItem = z.infer<typeof AgentTraceItemSchema>;
+
+export const EvaluationResultSchema = z.object({
+  userId: z.string(),
+  nodeId: z.string(),
+  conceptTitle: z.string(),
+  prevMastery: z.number(),
+  newMastery: z.number(),
+  delta: z.number(),
+  bkt: z
+    .object({
+      prior: z.number(),
+      posterior: z.number(),
+      transit: z.number(),
+    })
+    .optional(),
+  feedback: z.string(),
+  unlockedBadges: z.array(z.string()).default([]),
+  timestamp: z.string(),
+});
+export type EvaluationResult = z.infer<typeof EvaluationResultSchema>;
+
+export const SqlExerciseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  difficulty: z.number().int().min(1).max(5),
+  category: z.string(),
+  description: z.string(),
+  schemaHint: z.string(),
+  skeletonSql: z.string(),
+  standardSql: z.string(),
+  targetNodeId: z.string(),
+});
+export type SqlExercise = z.infer<typeof SqlExerciseSchema>;
+
+export const AchievementSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  icon: z.string(),
+  description: z.string(),
+  unlocked: z.boolean(),
+  unlockedAt: z.string().optional(),
+  category: z.string(),
+});
+export type Achievement = z.infer<typeof AchievementSchema>;
+
+export const MasteryHistoryPointSchema = z.object({
+  date: z.string(),
+  timestamp: z.string(),
+  mastery: z.number(),
+  nodeId: z.string(),
+  nodeTitle: z.string(),
+  delta: z.number(),
+});
+export type MasteryHistoryPoint = z.infer<typeof MasteryHistoryPointSchema>;
+
 export const LoginRequestSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
@@ -129,6 +194,7 @@ export const ResourceRequestSchema = z.object({
   userId: z.string(),
   nodeId: z.string(),
   type: ResourceSchema.shape.type,
+  forceReviewReject: z.boolean().optional(),
 });
 
 export const TutorRequestSchema = z.object({
@@ -141,6 +207,17 @@ export const SqlRunRequestSchema = z.object({
   userId: z.string(),
   mode: z.enum(["query", "experiment"]),
   sql: z.string().min(1).max(16_384),
+  exerciseId: z.string().optional(),
 });
+
+export const EvaluationRequestSchema = z.object({
+  userId: z.string(),
+  nodeId: z.string(),
+  correct: z.boolean(),
+  timeSpentSec: z.number().optional(),
+  hintCount: z.number().optional(),
+  sql: z.string().optional(),
+});
+export type EvaluationRequest = z.infer<typeof EvaluationRequestSchema>;
 
 export type ApiError = { error: string; details?: unknown };

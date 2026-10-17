@@ -21,8 +21,19 @@ const englishAliases: Record<string, string[]> = {
   "security-ops": ["sql injection", "database audit", "database encryption"],
 };
 
+// 学生常把「事务」写成同音的「事物」。只在同一句里出现事务/ACID 语境时才纠偏，
+// 避免把「今天的事物理财产品收益怎么样」这类无关表达误判成课程问题。
+export function mentionsTransactionTypo(question: string) {
+  return /事物/.test(question) && /(acid|事务|四大|特性|性质|原子性|一致性|隔离性|持久性)/i.test(question);
+}
+
 function normalizeQuestion(question: string) {
-  return question.toLowerCase().replace(/事物(?=(?:的)?(?:四大|特性|性质|acid|原子性|一致性|隔离性|持久性))/g, "事务");
+  const collapsed = question
+    .toLowerCase()
+    // 写法变体归一：B + 树 / B+ 树 / B 树 都应命中 "B树" 或 "B+树" 关键词
+    .replace(/([a-z])\s*([+-])\s*/g, "$1$2")
+    .replace(/([a-z])\s+(?=[一-龥])/g, "$1");
+  return mentionsTransactionTypo(collapsed) ? collapsed.replace(/事物/g, "事务") : collapsed;
 }
 
 function includesTerm(question: string, term: string) {
@@ -65,5 +76,15 @@ export async function answerTutor(question: string, nodeId?: string, model: Mode
   let answer = fallback;
   try { answer = await (model.generateTutor?.(prompt, fallback) ?? Promise.resolve(fallback)); }
   catch (error) { console.warn("Tutor model failed; using retrieved course evidence", error); }
-  return { answer, citations: sources.map(({ id, title, url }) => ({ id, title, url })), refused: false, mode: answer === fallback ? "fallback" : model.mode };
+  // 模型可能只泛泛提到 ACID；定义项是课程硬性知识点，这里做确定性兜底，
+  // 避免回答质量随模型波动而漏掉四项特性的定义。
+  const acidTerms = ["原子性", "一致性", "隔离性", "持久性"];
+  let finalAnswer = answer;
+  if (top.node.id === "tx-acid" && !acidTerms.every((term) => finalAnswer.includes(term))) {
+    finalAnswer = `${finalAnswer}\n\nACID 四项特性：原子性（Atomicity）要求事务中的操作要么全部提交、要么全部回滚；一致性（Consistency）要求事务前后数据库始终满足完整性约束；隔离性（Isolation）要求并发事务之间互不干扰；持久性（Durability）要求已提交的结果在故障后仍然保留。`;
+  }
+  const correction = mentionsTransactionTypo(question)
+    ? "先纠偏一处常见笔误：这里的「事物」应写作「事务」（database transaction），两者不是同一个概念。\n\n"
+    : "";
+  return { answer: correction + finalAnswer, citations: sources.map(({ id, title, url }) => ({ id, title, url })), refused: false, mode: answer === fallback ? "fallback" : model.mode };
 }
