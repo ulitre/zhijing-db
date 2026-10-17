@@ -17,7 +17,9 @@
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "check:delivery": "pnpm check && pnpm --filter client build && node scripts/check-delivery.mjs"
+    "check:delivery": "pnpm check && pnpm --filter client build && node scripts/check-delivery.mjs",
+    "env:local": "node scripts/env-switch.mjs local",
+    "env:prod": "node scripts/env-switch.mjs prod"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
