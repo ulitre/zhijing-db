@@ -52,7 +52,7 @@ const mapRemoteResource = (item: DashboardResponse["resources"][number], extraTr
 };
 const mapRemotePath = (path: { id: string; nodeId: string; title: string; reason: string; mastery: number; status: string; recommendedResource: string }[]): PathItem[] => path.map((item) => ({ ...item, resource: resourceTypeLabels[item.recommendedResource] ?? item.recommendedResource, evidence: `${item.reason}；诊断/画像掌握度 ${item.mastery}%` }));
 type DiagnosticAnswer = { nodeId: string; correctness: number; usedHint: boolean; confidence: number };
-type AppState = { demoUsers: UserSummary[]; currentUser: UserSummary | null; path: PathItem[]; resources: ResourceItem[]; latestTrace: AgentTraceItem[] | null; loading: boolean; ready: boolean; login: (username: string, password: string) => Promise<void>; logout: () => Promise<void>; completeDiagnostic: (answers: DiagnosticAnswer[]) => Promise<void>; addGeneratedResource: (type: string, options?: { forceReviewReject?: boolean }) => Promise<void> };
+type AppState = { demoUsers: UserSummary[]; currentUser: UserSummary | null; path: PathItem[]; resources: ResourceItem[]; latestTrace: AgentTraceItem[] | null; loading: boolean; ready: boolean; login: (username: string, password: string) => Promise<void>; logout: () => Promise<void>; switchUser: (userId: string) => Promise<void>; completeDiagnostic: (answers: DiagnosticAnswer[]) => Promise<void>; addGeneratedResource: (type: string, options?: { forceReviewReject?: boolean; nodeId?: string }) => Promise<void> };
 const AppContext = createContext<AppState | null>(null);
 const SESSION_KEY = "zhijing.session.v2";
 
@@ -75,28 +75,38 @@ export function AppProvider({ children }: PropsWithChildren) {
     } finally { setLoading(false); }
   };
   const logout = async () => { await AsyncStorage.removeItem(SESSION_KEY); setCurrentUser(null); setResources([]); setRemotePath(null); setLatestTrace(null); };
-  const addGeneratedResource = async (type: string, options?: { forceReviewReject?: boolean }) => {
+  const switchUser = async (userId: string) => {
+    const user = users.find((candidate) => candidate.id === userId);
+    if (!user) return;
+    setResources([]); setRemotePath(null); setLatestTrace(null);
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ token: "local-demo", userId: user.id, expiresAt: Date.now() + 86_400_000 }));
+    await hydrate(user);
+  };
+  const addGeneratedResource = async (type: string, options?: { forceReviewReject?: boolean; nodeId?: string }) => {
     if (!currentUser) return;
     const typeMap: Record<string, string> = { "讲解文档": "document", "知识图解": "diagram", "分层练习": "quiz", "SQL 实操": "sql-lab", "交互图解": "visual", "复习卡片": "reading" };
-    localResourceId.current += 1; const pendingId = `generating-${localResourceId.current}`; setResources((items) => [{ id: pendingId, userId: currentUser.id, nodeId: "", type, title: `正在生成${type}…`, summary: "资源代理正在结合当前画像与知识断点生成内容。", content: "", difficulty: 1, status: "生成中", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "" }, ...items]);
+    const nodeId = options?.nodeId ?? path[0]?.nodeId ?? "keys-integrity";
+    localResourceId.current += 1; const pendingId = `generating-${localResourceId.current}`; setResources((items) => [{ id: pendingId, userId: currentUser.id, nodeId, type, title: `正在生成${type}…`, summary: "资源代理正在结合当前画像与知识断点生成内容。", content: "", difficulty: 1, status: "生成中", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "" }, ...items]);
     try {
       if (!isApiConfigured()) throw new Error("API 未配置");
-      const nodeId = path[0]?.nodeId ?? "keys-integrity";
       const result = await generateResource({
         userId: currentUser.id,
         nodeId,
         type: typeMap[type] ?? "document",
         forceReviewReject: options?.forceReviewReject,
       });
-      setLatestTrace(result.agentTrace);
-      setResources((items) => [mapRemoteResource(result.resource, result.agentTrace), ...items.filter((item) => item.id !== pendingId && item.id !== result.resource.id)]);
+      // Cached API responses omit `agentTrace`; the resource's generated
+      // default trace keeps the quality gate populated in that case.
+      const mapped = mapRemoteResource(result.resource, result.agentTrace);
+      setLatestTrace(result.agentTrace ?? mapped.agentTrace ?? null);
+      setResources((items) => [mapped, ...items.filter((item) => item.id !== pendingId && item.id !== result.resource.id)]);
     } catch {
       const fallbackTrace: AgentTraceItem[] = [
         { agent: "Orchestrator", action: "调度降级方案", status: "completed", elapsedMs: 8, timestamp: new Date().toISOString() },
         { agent: "ReviewAgent", action: "服务暂不可用已降级", status: "fallback", elapsedMs: 12, timestamp: new Date().toISOString() },
       ];
       setLatestTrace(fallbackTrace);
-      setResources((items) => [{ id: `unavailable-${localResourceId.current}`, userId: currentUser.id, nodeId: "", type, title: `${type}暂不可用`, summary: "资源服务暂不可用，请检查网络后重试。", content: "", difficulty: 1, status: "已降级", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "", agentTrace: fallbackTrace }, ...items.filter((item) => item.id !== pendingId)]);
+      setResources((items) => [{ id: `unavailable-${localResourceId.current}`, userId: currentUser.id, nodeId, type, title: `${type}暂不可用`, summary: "资源服务暂不可用，请检查网络后重试。", content: "", difficulty: 1, status: "已降级", score: 0, sourceIds: [], personalizationReasons: [], cached: false, createdAt: "", agentTrace: fallbackTrace }, ...items.filter((item) => item.id !== pendingId)]);
     }
   };
   const completeDiagnostic = async (answers: DiagnosticAnswer[]) => {
@@ -106,7 +116,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     finally { setLoading(false); }
   };
   const path = remotePath ?? (currentUser ? pathByPersona[currentUser.persona] : []);
-  const value = { demoUsers: users, currentUser, path, resources, latestTrace, loading, ready, login, logout, completeDiagnostic, addGeneratedResource };
+  const value = { demoUsers: users, currentUser, path, resources, latestTrace, loading, ready, login, logout, switchUser, completeDiagnostic, addGeneratedResource };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 export function useApp() { const context = useContext(AppContext); if (!context) throw new Error("useApp must be used inside AppProvider"); return context; }

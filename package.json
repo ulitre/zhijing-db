@@ -19,7 +19,8 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "check:delivery": "pnpm check && pnpm --filter client build && node scripts/check-delivery.mjs",
     "env:local": "node scripts/env-switch.mjs local",
-    "env:prod": "node scripts/env-switch.mjs prod"
+    "env:prod": "node scripts/env-switch.mjs prod",
+    "verify:web": "node scripts/verify-web.mjs"
   },
   "devDependencies": {
     "@types/node": "22.15.30",

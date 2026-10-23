@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { GlassCard, ProgressBar, palette } from "../components/design-system";
+import { BulletBar, PageHeading, ThemedScreen, webOnly } from "../components/theme-ui";
 import { useApp } from "../state/app-context";
+import { useTheme } from "../state/theme-context";
 
 const questionBank = [
   { nodeId: "relations", levels: ["学生表的一行通常称为什么？", "关系模型中，元组和属性分别对应什么？", "一个关系的度和基数分别如何计算？"], answers: [["元组", "属性", "关系"], ["行与列", "列与行", "表名与数据"], ["属性数与元组数", "元组数与属性数", "主键数与外键数"]], correct: [0, 0, 0] },
@@ -15,6 +16,7 @@ const questionBank = [
 type Answer = { nodeId: string; correctness: number; usedHint: boolean; confidence: number };
 
 export default function DiagnosticScreen() {
+  const { theme } = useTheme();
   const { currentUser, completeDiagnostic, loading } = useApp();
   const [step, setStep] = useState(0); const [answers, setAnswers] = useState<Answer[]>([]);
   const bank = questionBank[step]!; const previous = answers[answers.length - 1]; const level = previous ? previous.correctness >= 85 ? levelFromAnswer(previous) : previous.correctness < 50 ? 0 : 1 : 0; const question = bank.levels[level]!;
@@ -25,18 +27,87 @@ export default function DiagnosticScreen() {
     if (step < questionBank.length - 1) setStep((value) => value + 1);
     else { await completeDiagnostic(next); router.replace("/(tabs)"); }
   };
-  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
-    <Text style={styles.eyebrow}>DIAGNOSIS AGENT · {step + 1}/{questionBank.length} · 难度 {level + 1}/3</Text>
-    <Text style={styles.title}>先聊几句，再为你规划</Text>
-    <Text style={styles.subtitle}>你好，{currentUser?.displayName}。这不是考试，我会根据回答动态调整后续问题和学习路径。</Text>
-    <ProgressBar value={((step + 1) / questionBank.length) * 100} />
-    <View style={styles.chatRow}><View style={styles.avatar}><Text style={styles.avatarText}>D</Text></View><GlassCard accent><Text style={styles.agent}>DiagnosisAgent</Text><Text style={styles.question}>{question}</Text></GlassCard></View>
-    <View style={styles.choices}>{bank.answers[level]!.map((choice, index) => <Pressable disabled={loading} key={choice} onPress={() => void choose(index)} style={styles.choice}><Text style={styles.choiceText}>{choice}</Text><Text style={styles.arrow}>›</Text></Pressable>)}</View>
-    {loading ? <View style={styles.loading}><ActivityIndicator color={palette.purple} /><Text style={styles.loadingText}>正在更新八维画像和动态路径…</Text></View> : null}
-    <Text style={styles.note}>回答仅用于本次演示画像 · 可在“我的”页面查看变化</Text>
-  </ScrollView></SafeAreaView>;
+  return <ThemedScreen contentContainerStyle={styles.page}>
+    <PageHeading title="先聊几句，再为你规划" subtitle={`你好，${currentUser?.displayName ?? "同学"}。这不是考试，我会根据回答动态调整后续问题和学习路径。`} />
+    <View style={styles.progressRow}>
+      <Text style={[styles.eyebrow, { color: theme.accentPrimary }]}>DIAGNOSIS AGENT · {step + 1}/{questionBank.length} · 难度 {level + 1}/3</Text>
+      <Text style={[styles.progressHint, { color: theme.textMuted }]}>自适应难度校准</Text>
+    </View>
+    <BulletBar value={((step + 1) / questionBank.length) * 100} color={theme.accentPrimary} marker={0} showMarker={false} accessibilityLabel={`诊断进度 ${step + 1}/${questionBank.length}`} />
+    <View accessibilityRole="progressbar" accessibilityLabel="诊断步骤" aria-valuemin={1} aria-valuemax={questionBank.length} aria-valuenow={step + 1} style={styles.stepDots}>
+      {questionBank.map((item, index) => <View
+        key={item.nodeId}
+        style={[
+          styles.stepDot,
+          { backgroundColor: index <= step ? theme.accentPrimary : theme.pendingLine },
+          index === step && styles.stepDotActive,
+          index < step && { opacity: 0.55 },
+        ]}
+      />)}
+    </View>
+
+    <View key={`step-${step}`} style={webOnly({ animationKeyframes: "fadeInUp", animationDuration: "420ms", animationTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)", animationFillMode: "backwards" })}>
+      <View style={styles.chatRow}>
+        <View style={[styles.avatar, { backgroundColor: theme.accentPrimary }]}><Text style={[styles.avatarText, { color: theme.onAccent }]}>D</Text></View>
+        <View style={[styles.questionCard, { backgroundColor: theme.bgSurface, borderColor: theme.accentSoftBorder }, webOnly({ boxShadow: cardShadowFor(theme) })]}>
+          <Text style={[styles.agent, { color: theme.accentPrimary }]}>DiagnosisAgent</Text>
+          <Text style={[styles.question, { color: theme.textPrimary }]}>{question}</Text>
+        </View>
+      </View>
+
+      <View style={styles.choices}>{bank.answers[level]!.map((choice, index) => <Pressable
+        disabled={loading}
+        key={choice}
+        accessibilityRole="button"
+        accessibilityLabel={`选项 ${index + 1}：${choice}`}
+        accessibilityState={{ disabled: loading }}
+        onPress={() => void choose(index)}
+        style={({ pressed }) => [
+          styles.choice,
+          { backgroundColor: theme.bgSurface, borderColor: theme.borderSubtle },
+          webOnly({ boxShadow: cardShadowFor(theme) }),
+          webOnly({ cursor: "pointer", transitionProperty: "border-color, background-color, transform, box-shadow", transitionDuration: "180ms" }),
+          pressed && !loading && styles.choicePressed,
+          pressed && !loading && { borderColor: theme.accentPrimary, backgroundColor: theme.accentSoft },
+          loading && styles.choiceDisabled,
+        ]}
+      ><Text style={[styles.choiceText, { color: theme.textPrimary }]}>{choice}</Text><Text style={[styles.arrow, { color: theme.accentPrimary }]}>›</Text></Pressable>)}</View>
+    </View>
+
+    {loading ? <View style={styles.loading}><ActivityIndicator color={theme.accentPrimary} /><Text style={[styles.loadingText, { color: theme.textSecondary }]}>正在更新八维画像和动态路径…</Text></View> : null}
+    <Text style={[styles.note, { color: theme.textMuted }]}>回答仅用于本次演示画像 · 可在“我的”页面查看变化</Text>
+  </ThemedScreen>;
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: palette.background }, page: { flexGrow: 1, width: "100%", maxWidth: 720, alignSelf: "center", padding: 24, paddingTop: 52, gap: 18 }, eyebrow: { color: palette.purple, fontWeight: "900", fontSize: 11, letterSpacing: 1.2 }, title: { color: palette.ink, fontWeight: "900", fontSize: 28 }, subtitle: { color: palette.muted, lineHeight: 22 }, chatRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 18 }, avatar: { width: 38, height: 38, borderRadius: 14, backgroundColor: palette.purple, alignItems: "center", justifyContent: "center" }, avatarText: { color: "white", fontWeight: "900" }, agent: { color: palette.purple, fontWeight: "900", fontSize: 11 }, question: { color: palette.ink, fontSize: 19, lineHeight: 28, fontWeight: "800", marginTop: 8 }, choices: { gap: 10 }, choice: { flexDirection: "row", alignItems: "center", minHeight: 58, backgroundColor: "#0B1329", borderWidth: 1, borderColor: "#334155", borderRadius: 17, paddingHorizontal: 17 }, choiceText: { color: palette.ink, fontWeight: "700", flex: 1 }, arrow: { color: palette.purple, fontSize: 24 }, loading: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" }, loadingText: { color: palette.muted, fontSize: 12 }, note: { color: palette.muted, fontSize: 11, textAlign: "center", marginTop: "auto" } });
+function cardShadowFor(theme: ReturnType<typeof useTheme>["theme"]) {
+  return theme.isDark
+    ? "inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 40px -22px rgba(0, 0, 0, 0.78)"
+    : "0 14px 34px -20px rgba(41, 37, 36, 0.18), 0 1px 3px rgba(41, 37, 36, 0.04)";
+}
+
+const styles = StyleSheet.create({
+  page: { maxWidth: 780, paddingTop: 48, gap: 18 },
+  progressRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 4 },
+  eyebrow: { fontWeight: "900", fontSize: 12.5, letterSpacing: 1, fontFamily: "monospace" },
+  progressHint: { fontSize: 13.5 },
+  chatRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 10 },
+  avatar: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  avatarText: { fontWeight: "900", fontSize: 16 },
+  questionCard: { flex: 1, minWidth: 0, borderRadius: 18, borderWidth: 1, borderLeftWidth: 3, padding: 20 },
+  agent: { fontWeight: "900", fontSize: 12.5 },
+  question: { fontSize: 21, lineHeight: 30, fontWeight: "800", marginTop: 8 },
+  stepDots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: -4 },
+  stepDot: { flex: 1, height: 4, borderRadius: 99, maxWidth: 48, opacity: 1 },
+  stepDotActive: { maxWidth: 84 },
+  choices: { gap: 12, marginTop: 12 },
+  choice: { flexDirection: "row", alignItems: "center", minHeight: 64, borderWidth: 1, borderRadius: 18, paddingHorizontal: 20 },
+  choicePressed: { opacity: 0.9, transform: [{ scale: 0.995 }] },
+  choiceDisabled: { opacity: 0.6 },
+  choiceText: { fontWeight: "700", flex: 1, fontSize: 16.5, lineHeight: 24 },
+  arrow: { fontSize: 26 },
+  loading: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" },
+  loadingText: { fontSize: 13.5 },
+  note: { fontSize: 12.5, textAlign: "center", marginTop: 24 },
+});
 
 function levelFromAnswer(answer: Answer) { return answer.correctness >= 100 ? 2 : 1; }

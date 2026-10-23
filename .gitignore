@@ -31,3 +31,6 @@ deliverables/
 *.mp4
 **/.claude/
 **/.vscode/settings.json
+
+# Headless web verification artefacts
+.verify/

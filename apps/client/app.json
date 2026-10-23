@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zhijingdb",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -24,15 +24,15 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "backgroundColor": "#020617",
-      "themeColor": "#020617"
+      "backgroundColor": "#FAF8F5",
+      "themeColor": "#FAF8F5"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#4C1D95",
+          "backgroundColor": "#FAF8F5",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

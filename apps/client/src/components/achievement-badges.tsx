@@ -1,6 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import type { Achievement } from "@zhijing/shared";
-import { GlassCard, palette } from "./design-system";
+import { Card, MONO_FONT } from "./theme-ui";
+import { useTheme } from "../state/theme-context";
 
 export const DEFAULT_ACHIEVEMENTS: Achievement[] = [
   {
@@ -79,6 +80,7 @@ export function AchievementWall({
   unlockedBadges?: string[];
   onBadgePress?: (badge: Achievement) => void;
 }) {
+  const { theme } = useTheme();
   const allBadges = DEFAULT_ACHIEVEMENTS.map((b) => ({
     ...b,
     unlocked: b.unlocked || unlockedBadges.includes(b.title) || unlockedBadges.includes(b.id),
@@ -87,19 +89,19 @@ export function AchievementWall({
   const unlockedCount = allBadges.filter((b) => b.unlocked).length;
 
   return (
-    <GlassCard>
+    <Card>
       <View style={styles.header}>
         <View>
-          <Text style={styles.kicker}>ACHIEVEMENT HONORS</Text>
-          <Text style={styles.title}>成就激励勋章墙</Text>
+          <Text style={[styles.kicker, { color: theme.warning }]}>ACHIEVEMENT HONORS</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>成就激励勋章墙</Text>
         </View>
-        <View style={styles.countPill}>
-          <Text style={styles.countText}>
+        <View style={[styles.countPill, { backgroundColor: theme.warningSoft, borderColor: `${theme.warning}44` }]}>
+          <Text style={[styles.countText, { color: theme.warning }]}>
             {unlockedCount} / {allBadges.length} 解锁
           </Text>
         </View>
       </View>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
         完成 SQL 沙箱实操、触发 BKT 模型跃迁与经历多智能体质检均可点亮勋章：
       </Text>
 
@@ -109,28 +111,34 @@ export function AchievementWall({
             <Pressable
               key={badge.id}
               accessibilityRole="button"
-              onPress={() => onBadgePress?.(badge)}
+              accessibilityLabel={`${badge.title}，${badge.unlocked ? "已解锁" : "未解锁"}`}
+              accessibilityState={{ disabled: !badge.unlocked }}
+              onPress={() => { if (badge.unlocked) onBadgePress?.(badge); }}
               style={({ pressed }) => [
                 styles.badgeCard,
-                badge.unlocked ? styles.badgeUnlocked : styles.badgeLocked,
-                pressed && styles.pressed,
+                {
+                  backgroundColor: badge.unlocked ? theme.bgElevated : "transparent",
+                  borderColor: badge.unlocked ? `${theme.warning}44` : theme.borderDivider,
+                  opacity: badge.unlocked ? 1 : 0.5,
+                },
+                badge.unlocked && pressed && styles.pressed,
               ]}
             >
               <Text style={[styles.badgeIcon, !badge.unlocked && styles.iconLocked]}>
                 {badge.icon}
               </Text>
               <Text
-                style={[styles.badgeTitle, !badge.unlocked && styles.titleLocked]}
+                style={[styles.badgeTitle, { color: badge.unlocked ? theme.textPrimary : theme.textMuted }]}
                 numberOfLines={1}
               >
                 {badge.title}
               </Text>
-              <Text style={styles.badgeCategory}>{badge.category}</Text>
+              <Text style={[styles.badgeCategory, { color: theme.textMuted }]}>{badge.category}</Text>
             </Pressable>
           );
         })}
       </View>
-    </GlassCard>
+    </Card>
   );
 }
 
@@ -143,22 +151,23 @@ export function BadgeCelebrationModal({
   visible: boolean;
   onClose: () => void;
 }) {
-  if (!badge) return null;
+  const { theme } = useTheme();
+  if (!badge || !badge.unlocked) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <Text style={styles.celebrationKicker}>🎉 NEW ACHIEVEMENT UNLOCKED</Text>
-          <View style={styles.modalIconBox}>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.isDark ? "rgba(0, 0, 0, 0.72)" : "rgba(41, 37, 36, 0.3)" }]}>
+        <View style={[styles.modalCard, { backgroundColor: theme.bgSurface, borderColor: `${theme.warning}66` }]}>
+          <Text style={[styles.celebrationKicker, { color: theme.warning }]}>🎉 NEW ACHIEVEMENT UNLOCKED</Text>
+          <View style={[styles.modalIconBox, { backgroundColor: theme.warningSoft, borderColor: theme.warning }]}>
             <Text style={styles.modalIcon}>{badge.icon}</Text>
           </View>
-          <Text style={styles.modalTitle}>{badge.title}</Text>
-          <Text style={styles.modalCategory}>{badge.category} · 荣誉成就</Text>
-          <Text style={styles.modalDesc}>{badge.description}</Text>
+          <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{badge.title}</Text>
+          <Text style={[styles.modalCategory, { color: theme.warning }]}>{badge.category} · 荣誉成就</Text>
+          <Text style={[styles.modalDesc, { color: theme.textSecondary }]}>{badge.description}</Text>
 
-          <Pressable onPress={onClose} style={styles.modalButton}>
-            <Text style={styles.modalButtonText}>收下徽章，继续学习</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="收下徽章，继续学习" onPress={onClose} style={({ pressed }) => [styles.modalButton, { backgroundColor: theme.accentPrimary }, pressed && styles.pressed]}>
+            <Text style={[styles.modalButtonText, { color: theme.onAccent }]}>收下徽章，继续学习</Text>
           </Pressable>
         </View>
       </View>
@@ -174,35 +183,32 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   kicker: {
-    color: "#FBBF24",
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 1.2,
+    fontFamily: MONO_FONT,
   },
   title: {
-    color: palette.ink,
     fontSize: 15,
     fontWeight: "900",
     marginTop: 2,
   },
   countPill: {
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
-    borderColor: "rgba(245, 158, 11, 0.4)",
     borderWidth: 1,
     borderRadius: 99,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   countText: {
-    color: "#FCD34D",
     fontSize: 9,
     fontWeight: "900",
+    fontVariant: ["tabular-nums"],
   },
   subtitle: {
-    color: palette.secondaryText,
     fontSize: 10,
     lineHeight: 16,
     marginBottom: 12,
+    marginTop: 4,
   },
   badgeGrid: {
     flexDirection: "row",
@@ -217,15 +223,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  badgeUnlocked: {
-    backgroundColor: "rgba(30, 41, 59, 0.7)",
-    borderColor: "rgba(245, 158, 11, 0.4)",
-  },
-  badgeLocked: {
-    backgroundColor: "rgba(15, 23, 42, 0.3)",
-    borderColor: "rgba(255, 255, 255, 0.05)",
-    opacity: 0.5,
-  },
   pressed: {
     opacity: 0.8,
     transform: [{ scale: 0.96 }],
@@ -238,22 +235,16 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   badgeTitle: {
-    color: palette.ink,
     fontSize: 9,
     fontWeight: "900",
     textAlign: "center",
   },
-  titleLocked: {
-    color: palette.muted,
-  },
   badgeCategory: {
-    color: palette.muted,
     fontSize: 7,
     marginTop: 2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(2, 6, 23, 0.85)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -261,15 +252,12 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     maxWidth: 380,
-    backgroundColor: "#0F172A",
     borderRadius: 24,
     padding: 24,
     borderWidth: 1.5,
-    borderColor: "rgba(245, 158, 11, 0.6)",
     alignItems: "center",
   },
   celebrationKicker: {
-    color: "#FBBF24",
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.5,
@@ -279,9 +267,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(245, 158, 11, 0.18)",
     borderWidth: 2,
-    borderColor: "#F59E0B",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -290,26 +276,22 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   modalTitle: {
-    color: "#FFFFFF",
     fontSize: 20,
     fontWeight: "900",
     marginBottom: 4,
   },
   modalCategory: {
-    color: "#FCD34D",
     fontSize: 11,
     fontWeight: "800",
     marginBottom: 12,
   },
   modalDesc: {
-    color: "#CBD5E1",
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: "#2563EB",
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -317,7 +299,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalButtonText: {
-    color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "900",
   },

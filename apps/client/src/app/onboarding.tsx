@@ -1,11 +1,59 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
-import { GlassCard, palette } from "../components/design-system";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Reveal } from "../components/scroll-reveal";
+import { PageHeading, ThemedScreen, webOnly } from "../components/theme-ui";
+import { useTheme } from "../state/theme-context";
 
 const steps = [["01", "先做一次诊断", "题目会根据你的回答自适应调整难度，定位需要巩固的知识点。"], ["02", "查看推荐路径", "路径展示诊断证据、掌握度、推荐节点和适合你的资源类型。"], ["03", "学习并验证", "在资源详情阅读解析、知识图或 SQL 实验，也可向 TutorAgent 提问。"]];
-export default function OnboardingScreen() {
-  const finish = async () => { await AsyncStorage.setItem("zhijing.onboarding.v1", "done"); router.replace("/"); };
-  return <SafeAreaView style={styles.safe}><View style={styles.page}><Text style={styles.eyebrow}>欢迎使用知径 DB</Text><Text style={styles.title}>四步形成个性化学习闭环</Text><Text style={styles.subtitle}>让诊断证据连接到下一步可执行的学习任务。</Text>{steps.map(([number, title, detail]) => <GlassCard key={number}><View style={styles.row}><Text style={styles.number}>{number}</Text><View style={styles.copy}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.detail}>{detail}</Text></View></View></GlassCard>)}<Pressable onPress={() => void finish()} style={styles.button}><Text style={styles.buttonText}>开始使用</Text></Pressable><Pressable onPress={() => void finish()} style={styles.skip}><Text style={styles.skipText}>以后从“使用帮助”再看</Text></Pressable></View></SafeAreaView>;
+
+function cardShadow(isDark: boolean) {
+  return isDark
+    ? "inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 40px -22px rgba(0, 0, 0, 0.78)"
+    : "0 14px 34px -22px rgba(41, 37, 36, 0.16), 0 1px 3px rgba(41, 37, 36, 0.04)";
 }
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: "#17102F" }, page: { flex: 1, justifyContent: "center", padding: 24, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }, eyebrow: { color: "#C4B5FD", fontWeight: "900", letterSpacing: 1 }, title: { color: "white", fontSize: 27, fontWeight: "900" }, subtitle: { color: "#DDD6FE", lineHeight: 22, marginBottom: 10 }, row: { flexDirection: "row", gap: 14, alignItems: "flex-start" }, number: { color: palette.purple, fontSize: 20, fontWeight: "900" }, copy: { flex: 1 }, cardTitle: { color: palette.ink, fontWeight: "900", fontSize: 16 }, detail: { color: palette.muted, lineHeight: 19, marginTop: 5, fontSize: 12 }, button: { minHeight: 52, alignItems: "center", justifyContent: "center", borderRadius: 15, backgroundColor: "#6D28D9", marginTop: 8 }, buttonText: { color: "white", fontWeight: "900", fontSize: 15 }, skip: { alignItems: "center", padding: 8 }, skipText: { color: "#DDD6FE", fontSize: 12 } });
+
+export default function OnboardingScreen() {
+  const { theme } = useTheme();
+  const finish = async () => { await AsyncStorage.setItem("zhijing.onboarding.v1", "done"); router.replace("/"); };
+  return <ThemedScreen contentContainerStyle={styles.page}>
+    <PageHeading title="三步形成个性化学习闭环" subtitle="让诊断证据连接到下一步可执行的学习任务。" />
+    <View style={styles.kickerRow}>
+      <Text style={[styles.kicker, { color: theme.accentPrimary }]}>GET STARTED · 3 STEPS</Text>
+      <Text style={[styles.kickerMeta, { color: theme.textMuted }]}>约 2 分钟 · 可随时跳过</Text>
+    </View>
+    {steps.map(([number, title, detail], index) => <Reveal key={number} index={index} reducedMotion={false}>
+      <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.borderSubtle }, webOnly({ boxShadow: cardShadow(theme.isDark) })]}>
+        <View style={[styles.stepBadge, { backgroundColor: theme.accentSoft, borderColor: theme.accentSoftBorder }]}><Text style={[styles.number, { color: theme.accentPrimary }]}>{number}</Text></View>
+        <View style={styles.copy}>
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{title}</Text>
+          <Text style={[styles.detail, { color: theme.textSecondary }]}>{detail}</Text>
+        </View>
+      </View>
+    </Reveal>)}
+    <Pressable accessibilityRole="button" accessibilityLabel="开始使用知径 DB" onPress={() => void finish()} style={({ pressed }) => [styles.button, { backgroundColor: theme.accentPrimary }, webOnly({ backgroundImage: theme.accentGradient, boxShadow: `0 16px 32px -16px ${theme.accentShadow}` }), pressed && styles.pressed]}>
+      <Text style={[styles.buttonText, { color: theme.onAccent }]}>开始使用 →</Text>
+    </Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel="跳过引导，稍后在帮助中查看" onPress={() => void finish()} style={({ pressed }) => [styles.skip, pressed && styles.pressed]}>
+      <Text style={[styles.skipText, { color: theme.textSecondary }]}>跳过，稍后从“使用帮助”查看</Text>
+    </Pressable>
+  </ThemedScreen>;
+}
+
+const styles = StyleSheet.create({
+  page: { maxWidth: 780, paddingTop: 64, paddingBottom: 64, justifyContent: "center", gap: 16 },
+  kickerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 6 },
+  kicker: { fontSize: 11, fontWeight: "900", letterSpacing: 1.1, fontFamily: "monospace" },
+  kickerMeta: { fontSize: 12.5 },
+  card: { flexDirection: "row", alignItems: "flex-start", gap: 16, borderRadius: 18, borderWidth: 1, padding: 20 },
+  stepBadge: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  number: { fontSize: 16, fontWeight: "900", fontFamily: "monospace" },
+  copy: { flex: 1, minWidth: 0 },
+  cardTitle: { fontWeight: "900", fontSize: 18 },
+  detail: { lineHeight: 23, marginTop: 6, fontSize: 15 },
+  button: { minHeight: 54, alignItems: "center", justifyContent: "center", borderRadius: 16, marginTop: 8 },
+  buttonText: { fontWeight: "900", fontSize: 16 },
+  skip: { alignItems: "center", padding: 12 },
+  skipText: { fontSize: 13.5, fontWeight: "700" },
+  pressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
+});
