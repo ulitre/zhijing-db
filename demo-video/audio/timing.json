@@ -1,0 +1,325 @@
+{
+  "voice": "zh-CN-XiaoxiaoNeural",
+  "rate": "+6%",
+  "scenes": {
+    "S01": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "每个学生都有一条路。",
+          "file": "audio/S01_01.mp3",
+          "duration": 2.11
+        },
+        {
+          "index": 2,
+          "text": "但数据库课上，没有人看得见它。",
+          "file": "audio/S01_02.mp3",
+          "duration": 3.1
+        },
+        {
+          "index": 3,
+          "text": "知径 DB，把这条路显影出来。",
+          "file": "audio/S01_03.mp3",
+          "duration": 3.05
+        }
+      ],
+      "audioDuration": 10.46
+    },
+    "S02": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "数据库原理，知识密度高，练习成本高。",
+          "file": "audio/S02_01.mp3",
+          "duration": 4.03
+        },
+        {
+          "index": 2,
+          "text": "学生不知道该补哪里，老师也没法逐个诊断。",
+          "file": "audio/S02_02.mp3",
+          "duration": 4.39
+        },
+        {
+          "index": 3,
+          "text": "问题不在努力，在于看不见薄弱点。",
+          "file": "audio/S02_03.mp3",
+          "duration": 3.46
+        }
+      ],
+      "audioDuration": 14.08
+    },
+    "S03": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "知径 DB 用三位真实学习画像作为入口。",
+          "file": "audio/S03_01.mp3",
+          "duration": 4.13
+        },
+        {
+          "index": 2,
+          "text": "同一个课程，不同的起点、目标与练习偏好。",
+          "file": "audio/S03_02.mp3",
+          "duration": 4.49
+        },
+        {
+          "index": 3,
+          "text": "一次登录，十二个智能体开始协同工作。",
+          "file": "audio/S03_03.mp3",
+          "duration": 3.94
+        },
+        {
+          "index": 4,
+          "text": "引擎会先读取画像，再决定今天的第一个动作。",
+          "file": "audio/S03_04.mp3",
+          "duration": 4.46
+        },
+        {
+          "index": 5,
+          "text": "画像不是标签，而是一组会随每次作答更新的概率。",
+          "file": "audio/S03_05.mp3",
+          "duration": 4.92
+        }
+      ],
+      "audioDuration": 24.84
+    },
+    "S04": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "首页不是报表，而是今天的行动建议。",
+          "file": "audio/S04_01.mp3",
+          "duration": 3.74
+        },
+        {
+          "index": 2,
+          "text": "八维能力雷达，把感觉变成可比较的证据。",
+          "file": "audio/S04_02.mp3",
+          "duration": 3.94
+        },
+        {
+          "index": 3,
+          "text": "六阶段流水线，把诊断、规划、生成、评审串成一条实时链路。",
+          "file": "audio/S04_03.mp3",
+          "duration": 6.41
+        },
+        {
+          "index": 4,
+          "text": "每个节点都可解释：现在在做什么，为什么是它。",
+          "file": "audio/S04_04.mp3",
+          "duration": 4.49
+        },
+        {
+          "index": 5,
+          "text": "今天先补哪个断点，由诊断证据和先修关系共同决定。",
+          "file": "audio/S04_05.mp3",
+          "duration": 5.18
+        }
+      ],
+      "audioDuration": 26.66
+    },
+    "S05": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "路径不是课程目录，而是从当前掌握度倒推出来的。",
+          "file": "audio/S05_01.mp3",
+          "duration": 4.78
+        },
+        {
+          "index": 2,
+          "text": "先修关系决定顺序，掌握度决定优先级。",
+          "file": "audio/S05_02.mp3",
+          "duration": 4.2
+        },
+        {
+          "index": 3,
+          "text": "点开任一节点，能看到诊断证据、记忆卡与可解锁节点。",
+          "file": "audio/S05_03.mp3",
+          "duration": 5.38
+        },
+        {
+          "index": 4,
+          "text": "学生第一次知道，为什么先学这个。",
+          "file": "audio/S05_04.mp3",
+          "duration": 3.34
+        }
+      ],
+      "audioDuration": 20.25
+    },
+    "S06": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "这是我们的核心差异。",
+          "file": "audio/S06_01.mp3",
+          "duration": 2.18
+        },
+        {
+          "index": 2,
+          "text": "不是让模型写一段内容就结束，而是让生成进入评审闭环。",
+          "file": "audio/S06_02.mp3",
+          "duration": 5.45
+        },
+        {
+          "index": 3,
+          "text": "六种资源形态，由不同角色并行合成。",
+          "file": "audio/S06_03.mp3",
+          "duration": 3.84
+        },
+        {
+          "index": 4,
+          "text": "初审不合格，自动带着修改意见重写，再审一次。",
+          "file": "audio/S06_04.mp3",
+          "duration": 4.85
+        },
+        {
+          "index": 5,
+          "text": "六十五分打回，二次重构，九十四分终审。",
+          "file": "audio/S06_05.mp3",
+          "duration": 4.08
+        },
+        {
+          "index": 6,
+          "text": "每一次生成，都留下可解释的智能体轨迹。",
+          "file": "audio/S06_06.mp3",
+          "duration": 4.01
+        }
+      ],
+      "audioDuration": 27.66
+    },
+    "S07": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "导师不是通用聊天机器人。",
+          "file": "audio/S07_01.mp3",
+          "duration": 2.62
+        },
+        {
+          "index": 2,
+          "text": "它先检索四十五个课程节点与受许可的教材来源，再基于证据作答。",
+          "file": "audio/S07_02.mp3",
+          "duration": 6.1
+        },
+        {
+          "index": 3,
+          "text": "展开思考过程，能看见检索、命中与质检三步。",
+          "file": "audio/S07_03.mp3",
+          "duration": 4.73
+        },
+        {
+          "index": 4,
+          "text": "每一句结论都有出处；课程之外的问题，它会明确说不。",
+          "file": "audio/S07_04.mp3",
+          "duration": 5.16
+        }
+      ],
+      "audioDuration": 21.16
+    },
+    "S08": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "练习不是选择题。",
+          "file": "audio/S08_01.mp3",
+          "duration": 2.11
+        },
+        {
+          "index": 2,
+          "text": "每个查询都在隔离沙箱里真实执行，危险语法会被拦截。",
+          "file": "audio/S08_02.mp3",
+          "duration": 5.4
+        },
+        {
+          "index": 3,
+          "text": "执行之后，BKT 模型根据表现更新掌握度。",
+          "file": "audio/S08_03.mp3",
+          "duration": 4.46
+        },
+        {
+          "index": 4,
+          "text": "一次 JOIN，换来一条可追踪的能力增量。",
+          "file": "audio/S08_04.mp3",
+          "duration": 3.62
+        },
+        {
+          "index": 5,
+          "text": "错误不会被简单判错，而是记录成可复用的错因。",
+          "file": "audio/S08_05.mp3",
+          "duration": 4.63
+        },
+        {
+          "index": 6,
+          "text": "下一次进入实验室，题目会围绕这些错因重新排序。",
+          "file": "audio/S08_06.mp3",
+          "duration": 4.9
+        }
+      ],
+      "audioDuration": 28.37
+    },
+    "S09": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "学习过程不再是一个期末分数。",
+          "file": "audio/S09_01.mp3",
+          "duration": 3.19
+        },
+        {
+          "index": 2,
+          "text": "知识星座、打卡热力、掌握度曲线与遗忘曲线，构成一份成长档案。",
+          "file": "audio/S09_02.mp3",
+          "duration": 6.43
+        },
+        {
+          "index": 3,
+          "text": "该复习什么，系统比学生更清楚。",
+          "file": "audio/S09_03.mp3",
+          "duration": 3.41
+        }
+      ],
+      "audioDuration": 15.23
+    },
+    "S10": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "十二个角色，共用一条可观测的编排链路。",
+          "file": "audio/S10_01.mp3",
+          "duration": 3.96
+        },
+        {
+          "index": 2,
+          "text": "模型可用时调用大模型；不可用时确定性降级，课堂不中断。",
+          "file": "audio/S10_02.mp3",
+          "duration": 6.02
+        },
+        {
+          "index": 3,
+          "text": "这是我们能进真实教学场景的工程底线。",
+          "file": "audio/S10_03.mp3",
+          "duration": 3.65
+        }
+      ],
+      "audioDuration": 15.83
+    },
+    "S11": {
+      "lines": [
+        {
+          "index": 1,
+          "text": "知径 DB。",
+          "file": "audio/S11_01.mp3",
+          "duration": 1.87
+        },
+        {
+          "index": 2,
+          "text": "让每一条学习路径，都有证据。",
+          "file": "audio/S11_02.mp3",
+          "duration": 3.0
+        }
+      ],
+      "audioDuration": 6.72
+    }
+  }
+}

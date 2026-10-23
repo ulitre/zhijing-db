@@ -1,0 +1,13 @@
+{
+  "name": "zhijing-db-demo-video",
+  "private": true,
+  "type": "module",
+  "description": "Automated screen capture and assembly for the Zhijing DB investor demo video",
+  "scripts": {
+    "record": "node record.mjs",
+    "assemble": "node assemble.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

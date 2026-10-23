@@ -1,0 +1,5 @@
+file 'xiaoxiao.mp3'
+file '_silence.mp3'
+file 'xiaoyi.mp3'
+file '_silence.mp3'
+file 'yunyang.mp3'
